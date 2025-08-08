@@ -59,6 +59,9 @@ python main.py --setup
 
 # Install dependencies
 pip install -r requirements.txt
+
+# (Windows) Check your virtual environment status
+python main.py --check-venv
 ```
 
 ### 2. Basic Usage
@@ -75,6 +78,13 @@ python main.py --batch
 
 # Create sample document for testing
 python main.py --create-sample
+
+### Windows venv tips
+
+- Create venv: `python -m venv .venv`
+- Activate in PowerShell: `. .\\.venv\\Scripts\\Activate.ps1`
+- Activate in cmd.exe: `.venv\\Scripts\\activate.bat`
+- Verify: `python main.py --check-venv`
 ```
 
 ### 3. Processing Modes
@@ -239,11 +249,30 @@ for doc in documents:
 - **Balanced Mode**: 75-90% invisibility, 30-50% effectiveness
 - **Aggressive Mode**: 60-80% invisibility, 50-70% effectiveness
 
+## 🧰 Tools
+
+The `tools/` folder contains helper scripts you can run independently:
+
+- Detection tester (compare backup vs processed docs and estimate detection risk)
+  powershell
+  python tools/detection_tester.py
+  
+- Character analyzer (inspect Unicode scripts and invisible characters in a DOCX)
+  powershell
+  python tools/character_analyzer.py --file input/sample_thesis.docx
+  
+- Document comparer (diff two DOCX files and export a JSON report)
+  powershell
+  python tools/document_comparer.py --original backup/yourfile_backup_xxx.docx --modified output/processed_documents/yourfile_invisible_xxx.docx
+
+Reports are saved under `output/analysis_reports/` and diffs under `output/comparison_files/`.
+
 ## 🔧 Troubleshooting
 
 ### Common Issues
 
-**1. "No documents found in input directory"**
+### 1. "No documents found in input directory"
+
 ```bash
 # Create sample document
 python main.py --create-sample
@@ -252,7 +281,8 @@ python main.py --create-sample
 cp your_document.docx input/
 ```
 
-**2. "Module not found" errors**
+### 2. "Module not found" errors
+
 ```bash
 # Install dependencies
 pip install -r requirements.txt
@@ -261,13 +291,16 @@ pip install -r requirements.txt
 pip install python-docx pathlib
 ```
 
-**3. "Processing failed" errors**
+### 3. "Processing failed" errors
+
 - Check document format (only .docx supported)
 - Ensure document is not password protected
 - Verify file permissions
 
 ### Debug Mode
+
 Enable detailed logging by modifying `config.json`:
+
 ```json
 {
   "debug_mode": true,

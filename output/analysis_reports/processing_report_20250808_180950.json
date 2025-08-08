@@ -1,0 +1,33 @@
+{
+  "app_info": {
+    "name": "Invisible Plagiarism Tool",
+    "version": "1.0",
+    "processing_timestamp": "2025-08-08T18:09:50.245903",
+    "mode_used": "aggressive"
+  },
+  "file_info": {
+    "input_file": "input\\BAB I - 2025-08-05T085341.331.docx",
+    "output_file": "output/processed_documents/BAB I - 2025-08-05T085341.331_invisible_20250808_180950.docx",
+    "backup_file": "backup\\BAB I - 2025-08-05T085341.331_backup_20250808_180950.docx",
+    "file_size_original": 43117,
+    "file_size_processed": 38614
+  },
+  "processing_stats": {
+    "total_documents": 1,
+    "headers_modified": 0,
+    "chars_substituted": 42,
+    "invisible_chars_inserted": 6,
+    "metadata_modified": 1,
+    "processing_time": 0.063782
+  },
+  "verification_results": {
+    "visible_changes": 5,
+    "invisible_changes": 1,
+    "total_chars_changed": 13
+  },
+  "recommendations": [
+    "🔤 42 characters substituted with visually identical Unicode",
+    "👻 6 invisible characters strategically inserted",
+    "⚠️ Some visible changes detected - consider review"
+  ]
+}
