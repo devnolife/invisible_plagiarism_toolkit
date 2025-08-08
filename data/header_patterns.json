@@ -1,0 +1,25 @@
+{
+  "header_indicators": {
+    "chapter_patterns": ["BAB", "CHAPTER", "BAGIAN"],
+    "section_patterns": ["PENDAHULUAN", "METODE", "HASIL", "KESIMPULAN"],
+    "subsection_patterns": ["Latar Belakang", "Rumusan Masalah", "Tujuan"],
+    "formatting_clues": {
+      "all_caps": true,
+      "short_length": 5,
+      "centered": true,
+      "bold": true
+    }
+  },
+  "priority_headers": [
+    "BAB I",
+    "PENDAHULUAN", 
+    "BAB II",
+    "TINJAUAN PUSTAKA",
+    "BAB III", 
+    "METODE PENELITIAN",
+    "BAB IV",
+    "HASIL DAN PEMBAHASAN",
+    "BAB V",
+    "KESIMPULAN"
+  ]
+}

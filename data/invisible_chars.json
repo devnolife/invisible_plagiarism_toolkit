@@ -1,0 +1,19 @@
+{
+  "zero_width": {
+    "ZWSP": "\u200B",
+    "ZWNJ": "\u200C", 
+    "ZWJ": "\u200D",
+    "ZWNBSP": "\uFEFF"
+  },
+  "minimal_width": {
+    "THIN_SPACE": "\u2009",
+    "HAIR_SPACE": "\u200A",
+    "SIX_PER_EM": "\u2006"
+  },
+  "insertion_patterns": {
+    "after_punctuation": [".", ",", ";", ":"],
+    "between_words": [" "],
+    "in_headers": ["BAB", "PENDAHULUAN", "METODE"],
+    "strategic_positions": ["awal_kalimat", "akhir_paragraf"]
+  }
+}

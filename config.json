@@ -1,0 +1,66 @@
+{
+  "invisible_techniques": {
+    "zero_width_chars": {
+      "enabled": true,
+      "chars": ["\u200B", "\u200C", "\u200D", "\uFEFF"],
+      "insertion_rate": 0.05,
+      "target_locations": ["headers", "after_punctuation", "between_words"]
+    },
+    "unicode_substitution": {
+      "enabled": true,
+      "confidence_level": "high",
+      "target_chars": ["a", "e", "o", "p", "c", "x", "y"],
+      "substitution_rate": 0.03
+    },
+    "spacing_manipulation": {
+      "enabled": true,
+      "micro_adjustments": true,
+      "spacing_variance": 0.1
+    },
+    "metadata_manipulation": {
+      "enabled": true,
+      "modify_properties": true,
+      "add_invisible_content": true
+    }
+  },
+  "detection_targets": {
+    "turnitin": {
+      "priority": "high",
+      "known_patterns": ["exact_match", "paraphrase_detection"],
+      "bypass_techniques": ["char_substitution", "invisible_insertion"]
+    },
+    "copyscape": {
+      "priority": "medium", 
+      "bypass_techniques": ["spacing_manipulation"]
+    },
+    "grammarly": {
+      "priority": "low",
+      "bypass_techniques": ["unicode_substitution"]
+    }
+  },
+  "safety_settings": {
+    "preserve_readability": true,
+    "maintain_formatting": true,
+    "backup_original": true,
+    "max_changes_per_paragraph": 5,
+    "avoid_obvious_patterns": true
+  },
+  "target_elements": {
+    "headers": {
+      "priority": "highest",
+      "techniques": ["unicode_substitution", "invisible_chars"]
+    },
+    "first_sentences": {
+      "priority": "high", 
+      "techniques": ["spacing_manipulation"]
+    },
+    "citations": {
+      "priority": "medium",
+      "techniques": ["invisible_chars"]
+    },
+    "conclusion_paragraphs": {
+      "priority": "high",
+      "techniques": ["unicode_substitution"]
+    }
+  }
+}

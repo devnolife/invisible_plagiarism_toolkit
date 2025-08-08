@@ -1,0 +1,11 @@
+python-docx
+python-docx2txt
+openpyxl
+pandas
+numpy
+Pillow
+chardet
+beautifulsoup4
+lxml
+requests
+pathlib
