@@ -140,7 +140,6 @@ upload/
 # Output/Processed files
 output/*
 !output/.gitkeep
-!output/processed_documents/.gitkeep
 !output/analysis_reports/.gitkeep
 processed/
 results/
