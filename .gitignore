@@ -140,6 +140,8 @@ upload/
 # Output/Processed files
 output/*
 !output/.gitkeep
+!output/processed_documents/
+!output/processed_documents/*
 !output/analysis_reports/.gitkeep
 processed/
 results/
@@ -182,11 +184,10 @@ Thumbs.db
 *.csv
 *.xlsx
 *.xls
-*.pdf
-*.doc
-*.docx
-*.txt
-# Uncomment the line above if you don't want to track text files
+# *.pdf  # Uncomment if you don't want to track PDF files
+# *.doc  # Uncomment if you don't want to track DOC files  
+# *.docx # Uncomment if you don't want to track DOCX files (DISABLED for output/processed_documents)
+# *.txt  # Uncomment if you don't want to track text files
 
 # Analysis reports (unless specifically needed)
 *_report_*.json
