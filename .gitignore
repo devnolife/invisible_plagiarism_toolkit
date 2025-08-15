@@ -127,23 +127,27 @@ dmypy.json
 # Project-specific files
 
 # Log files
-logs/
+logs/*
+!logs/.gitkeep
 *.log
 
 # Input/Upload files - tidak perlu disimpan di git
-input/
 input/*
+!input/.gitkeep
 uploads/
 upload/
 
 # Output/Processed files
-output/
 output/*
+!output/.gitkeep
+!output/processed_documents/.gitkeep
+!output/analysis_reports/.gitkeep
 processed/
 results/
 
 # Backup files
-backup/
+backup/*
+!backup/.gitkeep
 *.bak
 *.backup
 
