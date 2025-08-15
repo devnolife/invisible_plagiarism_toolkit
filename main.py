@@ -13,6 +13,7 @@ import sys
 import json
 import argparse
 import traceback
+import random
 from datetime import datetime
 from pathlib import Path
 
@@ -217,16 +218,41 @@ def select_document(auto_select=False):
             return None
 
 
-def process_document(input_file, mode='balanced', verify_result=True):
-    """Process document with invisible manipulation"""
+def process_document(input_file, mode='balanced', verify_result=True, verbose=False, dry_run=False, force=False):
+    """Process document with invisible manipulation.
+
+    dry_run: simulate only, no output file produced.
+    force: override idempotency filename guard.
+    """
     print(f"🎯 Processing: {input_file.name}")
     print(f"🔧 Mode: {mode}")
+    if dry_run:
+        print("🧪 Dry-run mode (no file will be written)")
+    if not force and '_invisible_' in input_file.name:
+        print("⚠️ Detected already processed filename (contains '_invisible_'). Use --force to override.")
+        return None
     
     # Initialize manipulator
-    manipulator = InvisibleManipulator()
+    manipulator = InvisibleManipulator(verbose=verbose)
+
+    # Adjust aggressiveness based on mode (scales substitution & insertion rates temporarily)
+    mode_scaling = {
+        'stealth': 0.5,
+        'balanced': 1.0,
+        'aggressive': 1.8
+    }
+    scale = mode_scaling.get(mode, 1.0)
+    # Mutate runtime config (not persisted)
+    try:
+        sub_conf = manipulator.config['invisible_techniques']['unicode_substitution']
+        zero_conf = manipulator.config['invisible_techniques']['zero_width_chars']
+        sub_conf['effective_substitution_rate'] = sub_conf.get('substitution_rate', 0.03) * scale
+        zero_conf['effective_insertion_rate'] = zero_conf.get('insertion_rate', 0.05) * scale
+    except Exception:
+        pass
     
     # Process the document
-    result = manipulator.apply_invisible_manipulation(str(input_file))
+    result = manipulator.apply_invisible_manipulation(str(input_file), dry_run=dry_run)
     
     if not result:
         print("❌ Processing failed")
@@ -271,6 +297,11 @@ def generate_processing_report(result, mode):
         'recommendations': []
     }
     
+    # Attach seed if exists
+    seed_val = globals().get('RANDOM_SEED')
+    if seed_val is not None:
+        report['app_info']['seed'] = seed_val
+
     # Add recommendations based on results
     stats = result['stats']
     if stats['headers_modified'] > 0:
@@ -321,7 +352,10 @@ def print_final_summary(result):
     print("=" * 60)
     
     print(f"📄 Input: {Path(result['input_file']).name}")
-    print(f"📤 Output: {Path(result['output_file']).name}")
+    if result.get('dry_run'):
+        print("📤 Output: (dry-run) no file written")
+    else:
+        print(f"📤 Output: {Path(result['output_file']).name}")
     
     if result.get('backup_file'):
         print(f"💾 Backup: {Path(result['backup_file']).name}")
@@ -345,9 +379,10 @@ def print_final_summary(result):
         invisibility_ratio = verification['invisible_changes'] / max(1, verification['invisible_changes'] + verification['visible_changes'])
         print(f"   🎯 Invisibility score: {invisibility_ratio:.1%}")
     
-    print(f"\n📁 OUTPUT LOCATION:")
-    print(f"   📂 Folder: {Path(result['output_file']).parent}")
-    print(f"   📄 File: {Path(result['output_file']).name}")
+    if not result.get('dry_run'):
+        print(f"\n📁 OUTPUT LOCATION:")
+        print(f"   📂 Folder: {Path(result['output_file']).parent}")
+        print(f"   📄 File: {Path(result['output_file']).name}")
     
     print(f"\n💡 NEXT STEPS:")
     print(f"   1. Review the processed document")
@@ -397,7 +432,7 @@ def interactive_mode():
     
     # Process document
     print(f"\n🚀 Starting processing...")
-    result = process_document(document, selected_mode, enable_verification)
+    result = process_document(document, selected_mode, enable_verification, verbose=False)
     
     if result:
         print_final_summary(result)
@@ -644,6 +679,12 @@ Examples:
     parser.add_argument('--version', '-v', 
                        action='store_true',
                        help='Show version information')
+    parser.add_argument('--verbose', 
+                       action='store_true',
+                       help='Enable verbose logging')
+    parser.add_argument('--seed', type=int, help='Set random seed for reproducible results')
+    parser.add_argument('--dry-run', action='store_true', help='Simulate processing without writing output file')
+    parser.add_argument('--force', action='store_true', help='Force processing even if file seems already processed')
     
     return parser.parse_args()
 
@@ -662,6 +703,10 @@ def main():
     print("🔮 Invisible Plagiarism Tool v1.0")
     print("✨ Advanced Steganographic Document Manipulation")
     print("=" * 60)
+    if getattr(args, 'seed', None) is not None:
+        random.seed(args.seed)
+        globals()['RANDOM_SEED'] = args.seed
+        print(f"[SEED] Using random seed: {args.seed}")
     
     if args.setup:
         setup_project_structure()
@@ -679,6 +724,8 @@ def main():
     try:
         if args.batch:
             # Batch processing mode
+            if args.verbose:
+                print("[INFO] Verbose logging enabled")
             success = batch_mode(args.input_dir, args.mode)
             if not success:
                 sys.exit(1)
@@ -692,7 +739,7 @@ def main():
                 sys.exit(1)
             
             verify = not args.no_verify
-            result = process_document(input_file, args.mode, verify)
+            result = process_document(input_file, args.mode, verify, verbose=args.verbose, dry_run=args.dry_run, force=args.force)
             
             if result:
                 print_final_summary(result)
