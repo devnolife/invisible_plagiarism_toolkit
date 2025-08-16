@@ -1,0 +1,211 @@
+{
+  "app_info": {
+    "name": "Enhanced Invisible Plagiarism Toolkit",
+    "version": "2.0",
+    "description": "Advanced bypass engine untuk detector plagiarisme modern",
+    "target_year": "2025"
+  },
+  "invisible_techniques": {
+    "unicode_substitution": {
+      "enabled": true,
+      "substitution_rate": 0.35,
+      "confidence_level": "extreme",
+      "target_chars": ["a", "e", "o", "p", "c", "x", "y", "i", "A", "B", "C", "E", "H", "K", "M", "N", "O", "P", "T", "X", "Y"],
+      "priority_words": ["BAB", "PENDAHULUAN", "METODE", "HASIL", "KESIMPULAN", "PENELITIAN", "ANALISIS", "DATA", "TEORI"],
+      "stealth_level": "aggressive",
+      "multiple_alternatives": true,
+      "cyrillic_greek_mix": true,
+      "advanced_mappings": true
+    },
+    "zero_width_chars": {
+      "enabled": true,
+      "chars": ["\u200B", "\u200C", "\u200D", "\uFEFF", "\u2060", "\u180E", "\u034F", "\u061C"],
+      "insertion_rate": 0.25,
+      "target_locations": ["headers", "after_punctuation", "between_words", "within_words", "after_capital_letters"],
+      "randomization": true,
+      "clustering_avoidance": true,
+      "strategic_placement": true
+    },
+    "semantic_replacement": {
+      "enabled": true,
+      "replacement_rate": 0.30,
+      "academic_synonyms": true,
+      "wordnet_integration": true,
+      "indonesian_academic_focus": true,
+      "preserve_meaning": true,
+      "context_aware": true,
+      "synonym_diversity": true
+    },
+    "sentence_restructuring": {
+      "enabled": true,
+      "restructure_rate": 0.20,
+      "passive_active_conversion": true,
+      "phrase_variation": true,
+      "sentence_starter_variation": true,
+      "academic_tone_preservation": true,
+      "conjunction_variation": true
+    },
+    "spacing_manipulation": {
+      "enabled": true,
+      "micro_adjustments": true,
+      "spacing_variance": 0.15,
+      "unicode_spaces": true,
+      "strategic_replacement": true,
+      "invisible_padding": true
+    },
+    "metadata_manipulation": {
+      "enabled": true,
+      "modify_properties": true,
+      "add_invisible_content": true,
+      "timestamp_randomization": true,
+      "author_field_obfuscation": true,
+      "revision_history_clearing": true
+    },
+    "advanced_techniques": {
+      "text_fingerprint_disruption": {
+        "enabled": true,
+        "hash_breaking": true,
+        "sequence_disruption": true,
+        "pattern_randomization": true
+      },
+      "semantic_coherence_maintenance": {
+        "enabled": true,
+        "meaning_preservation": true,
+        "academic_integrity": true,
+        "readability_check": true
+      },
+      "multi_layer_protection": {
+        "enabled": true,
+        "layer_count": 3,
+        "technique_diversification": true,
+        "progressive_aggression": true
+      }
+    }
+  },
+  "detection_targets": {
+    "turnitin": {
+      "priority": "extreme",
+      "known_patterns": ["exact_match", "paraphrase_detection", "semantic_analysis", "unicode_detection", "invisible_char_detection"],
+      "bypass_techniques": ["advanced_unicode", "semantic_replacement", "sentence_restructuring", "fingerprint_disruption"],
+      "specific_countermeasures": {
+        "semantic_fingerprinting": true,
+        "unicode_normalization_bypass": true,
+        "sentence_level_analysis_bypass": true,
+        "contextual_analysis_disruption": true
+      },
+      "aggression_multiplier": 1.5
+    },
+    "copyscape": {
+      "priority": "high", 
+      "bypass_techniques": ["spacing_manipulation", "unicode_substitution", "text_fragmentation"],
+      "specific_countermeasures": {
+        "exact_match_disruption": true,
+        "sequence_breaking": true
+      },
+      "aggression_multiplier": 1.2
+    },
+    "plagscan": {
+      "priority": "high",
+      "bypass_techniques": ["unicode_substitution", "semantic_replacement"],
+      "specific_countermeasures": {
+        "multilingual_detection_bypass": true,
+        "academic_phrase_variation": true
+      },
+      "aggression_multiplier": 1.3
+    },
+    "grammarly": {
+      "priority": "medium",
+      "bypass_techniques": ["unicode_substitution", "spacing_manipulation"],
+      "aggression_multiplier": 1.0
+    },
+    "unicheck": {
+      "priority": "high",
+      "bypass_techniques": ["advanced_unicode", "sentence_restructuring"],
+      "aggression_multiplier": 1.4
+    }
+  },
+  "safety_settings": {
+    "preserve_readability": true,
+    "maintain_formatting": true,
+    "maintain_academic_tone": true,
+    "backup_original": true,
+    "max_changes_per_paragraph": 20,
+    "avoid_obvious_patterns": true,
+    "quality_threshold": 0.85,
+    "semantic_coherence_check": true,
+    "readability_score_minimum": 0.8
+  },
+  "target_elements": {
+    "headers": {
+      "priority": "extreme",
+      "techniques": ["unicode_substitution", "invisible_chars", "semantic_replacement"],
+      "aggression_multiplier": 2.0
+    },
+    "first_sentences": {
+      "priority": "extreme", 
+      "techniques": ["sentence_restructuring", "semantic_replacement", "spacing_manipulation"],
+      "aggression_multiplier": 1.8
+    },
+    "key_academic_terms": {
+      "priority": "extreme",
+      "techniques": ["unicode_substitution", "semantic_replacement"],
+      "target_words": ["penelitian", "analisis", "metode", "hasil", "kesimpulan", "data", "teori", "faktor", "variabel", "hipotesis"],
+      "aggression_multiplier": 2.5
+    },
+    "citations": {
+      "priority": "high",
+      "techniques": ["invisible_chars", "spacing_manipulation"],
+      "aggression_multiplier": 1.5
+    },
+    "conclusion_paragraphs": {
+      "priority": "extreme",
+      "techniques": ["unicode_substitution", "sentence_restructuring", "semantic_replacement"],
+      "aggression_multiplier": 2.0
+    },
+    "abstract_summary": {
+      "priority": "extreme",
+      "techniques": ["semantic_replacement", "sentence_restructuring", "unicode_substitution"],
+      "aggression_multiplier": 2.2
+    },
+    "methodology_sections": {
+      "priority": "high",
+      "techniques": ["semantic_replacement", "sentence_restructuring"],
+      "aggression_multiplier": 1.7
+    }
+  },
+  "quality_assurance": {
+    "enabled": true,
+    "checks": {
+      "readability_preservation": true,
+      "semantic_coherence": true,
+      "academic_tone_maintenance": true,
+      "formatting_integrity": true,
+      "invisibility_verification": true
+    },
+    "thresholds": {
+      "minimum_invisibility_score": 0.85,
+      "maximum_detection_risk": 0.3,
+      "readability_preservation_minimum": 0.8
+    },
+    "automatic_adjustment": {
+      "enabled": true,
+      "risk_based_tuning": true,
+      "quality_based_rollback": true
+    }
+  },
+  "performance_optimization": {
+    "parallel_processing": false,
+    "chunk_size": 1000,
+    "memory_management": true,
+    "progress_reporting": true,
+    "benchmark_mode": false
+  },
+  "reporting": {
+    "detailed_analysis": true,
+    "risk_assessment": true,
+    "technique_breakdown": true,
+    "recommendations": true,
+    "export_formats": ["json", "html"],
+    "include_statistics": true
+  }
+}
