@@ -1,0 +1,730 @@
+{
+	"info": {
+		"_postman_id": "12345678-1234-5678-9abc-123456789012",
+		"name": "Invisible Plagiarism Toolkit API",
+		"description": "Complete collection for testing the Invisible Plagiarism Toolkit API with steganography, Turnitin removal, and document processing capabilities.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "12345678"
+	},
+	"item": [
+		{
+			"name": "System Status",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Check if the API server is running and healthy."
+					},
+					"response": []
+				},
+				{
+					"name": "System Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"status"
+							]
+						},
+						"description": "Get comprehensive system status including component health and configuration."
+					},
+					"response": []
+				},
+				{
+					"name": "API Root",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							]
+						},
+						"description": "API root endpoint with basic information."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for checking system health and status."
+		},
+		{
+			"name": "Text Processing",
+			"item": [
+				{
+					"name": "Process Text - Complete System",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"text\": \"Berdasarkan hasil penelitian dapat disimpulkan bahwa kualitas produk berpengaruh signifikan terhadap keputusan pembelian konsumen. Penelitian ini menggunakan metode kuantitatif dengan analisis statistik untuk menguji hipotesis yang diajukan.\",\n    \"mode\": \"complete\",\n    \"intensity\": \"high\",\n    \"enable_ai_validation\": true,\n    \"remove_turnitin_traces\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/process/text",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"process",
+								"text"
+							]
+						},
+						"description": "Process text with complete steganography system including T5 paraphrasing, Unicode substitution, invisible characters, and AI validation."
+					},
+					"response": []
+				},
+				{
+					"name": "Process Text - Paraphrasing Only",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"text\": \"Penelitian ini bertujuan untuk menganalisis pengaruh teknologi digital terhadap proses pembelajaran di institusi pendidikan tinggi.\",\n    \"mode\": \"paraphrase_only\",\n    \"intensity\": \"medium\",\n    \"enable_ai_validation\": true,\n    \"remove_turnitin_traces\": false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/process/text",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"process",
+								"text"
+							]
+						},
+						"description": "Process text using only neural paraphrasing (T5 + contextual synonyms)."
+					},
+					"response": []
+				},
+				{
+					"name": "Process Text - Steganography Only",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"text\": \"Metodologi penelitian yang digunakan dalam studi ini adalah pendekatan kualitatif dengan teknik wawancara mendalam dan observasi partisipatif.\",\n    \"mode\": \"steganography_only\",\n    \"intensity\": \"extreme\",\n    \"enable_ai_validation\": false,\n    \"remove_turnitin_traces\": false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/process/text",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"process",
+								"text"
+							]
+						},
+						"description": "Process text using only steganography techniques (Unicode substitution + invisible characters)."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for processing text content with various steganography techniques."
+		},
+		{
+			"name": "File Processing",
+			"item": [
+				{
+					"name": "Process PDF - Complete System",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": [],
+									"description": "Upload PDF file to process"
+								},
+								{
+									"key": "mode",
+									"value": "complete",
+									"type": "text",
+									"description": "Processing mode"
+								},
+								{
+									"key": "intensity",
+									"value": "high",
+									"type": "text",
+									"description": "Processing intensity"
+								},
+								{
+									"key": "enable_ai_validation",
+									"value": "true",
+									"type": "text",
+									"description": "Enable AI quality validation"
+								},
+								{
+									"key": "remove_turnitin_traces",
+									"value": "true",
+									"type": "text",
+									"description": "Remove Turnitin traces"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/process/file",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"process",
+								"file"
+							]
+						},
+						"description": "Process PDF file with complete system including Turnitin removal, steganography, and paraphrasing."
+					},
+					"response": []
+				},
+				{
+					"name": "Process PDF - Turnitin Cleanup Only",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": [],
+									"description": "Upload PDF file with Turnitin marks"
+								},
+								{
+									"key": "mode",
+									"value": "turnitin_cleanup",
+									"type": "text",
+									"description": "Turnitin cleanup mode"
+								},
+								{
+									"key": "intensity",
+									"value": "medium",
+									"type": "text"
+								},
+								{
+									"key": "enable_ai_validation",
+									"value": "false",
+									"type": "text"
+								},
+								{
+									"key": "remove_turnitin_traces",
+									"value": "true",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/process/file",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"process",
+								"file"
+							]
+						},
+						"description": "Clean PDF file by removing all Turnitin traces (markers, highlights, watermarks, metadata)."
+					},
+					"response": []
+				},
+				{
+					"name": "Process Text File",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": [],
+									"description": "Upload .txt or .md file"
+								},
+								{
+									"key": "mode",
+									"value": "complete",
+									"type": "text"
+								},
+								{
+									"key": "intensity",
+									"value": "medium",
+									"type": "text"
+								},
+								{
+									"key": "enable_ai_validation",
+									"value": "true",
+									"type": "text"
+								},
+								{
+									"key": "remove_turnitin_traces",
+									"value": "true",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/process/file",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"process",
+								"file"
+							]
+						},
+						"description": "Process text file (.txt, .md) with steganography techniques."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for processing uploaded files (PDF, text files)."
+		},
+		{
+			"name": "Job Management",
+			"item": [
+				{
+					"name": "Get Job Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/job/{{job_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"job",
+								"{{job_id}}"
+							]
+						},
+						"description": "Get status and progress of a processing job by job ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Job Result",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/job/{{job_id}}/result",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"job",
+								"{{job_id}}",
+								"result"
+							]
+						},
+						"description": "Get the detailed result of a completed processing job."
+					},
+					"response": []
+				},
+				{
+					"name": "Download Processed File",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/job/{{job_id}}/download",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"job",
+								"{{job_id}}",
+								"download"
+							]
+						},
+						"description": "Download the processed file from a completed job."
+					},
+					"response": []
+				},
+				{
+					"name": "List All Jobs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/jobs?status=completed&limit=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"jobs"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "completed",
+									"description": "Filter by job status (pending, processing, completed, failed)"
+								},
+								{
+									"key": "limit",
+									"value": "20",
+									"description": "Maximum number of jobs to return"
+								}
+							]
+						},
+						"description": "List all processing jobs with optional status filter."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Job",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/job/{{job_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"job",
+								"{{job_id}}"
+							]
+						},
+						"description": "Delete a job and clean up associated files."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for managing processing jobs and results."
+		},
+		{
+			"name": "Test Scenarios",
+			"item": [
+				{
+					"name": "Complete Workflow Test",
+					"item": [
+						{
+							"name": "Step 1 - Check System Status",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/status",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"status"
+									]
+								},
+								"description": "Verify system is ready for processing"
+							},
+							"response": []
+						},
+						{
+							"name": "Step 2 - Process Sample Text",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Extract job_id from response",
+											"if (pm.response.code === 200) {",
+											"    const responseData = pm.response.json();",
+											"    pm.environment.set('job_id', responseData.job_id);",
+											"    pm.test('Job created successfully', function () {",
+											"        pm.expect(responseData.status).to.eql('pending');",
+											"    });",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"text\": \"Analisis data dalam penelitian ini menggunakan metode statistik deskriptif dan inferensial. Hasil penelitian menunjukkan adanya korelasi positif antara variabel independen dan dependen dengan tingkat signifikansi p < 0.05.\",\n    \"mode\": \"complete\",\n    \"intensity\": \"high\",\n    \"enable_ai_validation\": true,\n    \"remove_turnitin_traces\": true\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/process/text",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"process",
+										"text"
+									]
+								},
+								"description": "Start complete text processing and capture job_id"
+							},
+							"response": []
+						},
+						{
+							"name": "Step 3 - Check Job Progress",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Check if job is completed",
+											"if (pm.response.code === 200) {",
+											"    const responseData = pm.response.json();",
+											"    pm.test('Job status check', function () {",
+											"        pm.expect(responseData.job_id).to.exist;",
+											"        pm.expect(responseData.progress).to.be.at.least(0);",
+											"    });",
+											"    ",
+											"    if (responseData.status === 'completed') {",
+											"        pm.test('Job completed successfully', function () {",
+											"            pm.expect(responseData.progress).to.eql(100);",
+											"        });",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/job/{{job_id}}",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"job",
+										"{{job_id}}"
+									]
+								},
+								"description": "Monitor job progress (repeat this call until completed)"
+							},
+							"response": []
+						},
+						{
+							"name": "Step 4 - Get Final Result",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Validate processing results",
+											"if (pm.response.code === 200) {",
+											"    const result = pm.response.json();",
+											"    ",
+											"    pm.test('Processing completed successfully', function () {",
+											"        pm.expect(result.final_text).to.exist;",
+											"        pm.expect(result.techniques_used).to.be.an('array');",
+											"        pm.expect(result.effectiveness_score).to.be.at.least(0);",
+											"    });",
+											"    ",
+											"    pm.test('Text was modified', function () {",
+											"        pm.expect(result.final_text).to.not.eql(result.original_text);",
+											"    });",
+											"    ",
+											"    pm.test('Steganography applied', function () {",
+											"        pm.expect(result.techniques_used.length).to.be.at.least(1);",
+											"    });",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/job/{{job_id}}/result",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"job",
+										"{{job_id}}",
+										"result"
+									]
+								},
+								"description": "Get final processing results with validation"
+							},
+							"response": []
+						}
+					],
+					"description": "Complete end-to-end test workflow"
+				},
+				{
+					"name": "Performance Test",
+					"item": [
+						{
+							"name": "Large Text Processing",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"text\": \"Penelitian ini merupakan studi komprehensif yang bertujuan untuk menganalisis dampak teknologi informasi terhadap transformasi digital dalam sektor pendidikan tinggi di Indonesia. Metodologi yang digunakan adalah mixed-method dengan pendekatan kuantitatif dan kualitatif. Sampel penelitian terdiri dari 500 responden yang dipilih secara stratified random sampling dari berbagai universitas negeri dan swasta. Data dikumpulkan melalui survei online, wawancara mendalam, dan focus group discussion. Analisis data menggunakan Statistical Package for Social Sciences (SPSS) versi 28 untuk analisis kuantitatif dan NVivo 12 untuk analisis kualitatif. Hasil penelitian menunjukkan bahwa implementasi teknologi informasi memiliki pengaruh signifikan terhadap efektivitas pembelajaran dengan nilai p < 0.001. Koefisien determinasi (R²) sebesar 0.756 menunjukkan bahwa 75.6% variasi dalam efektivitas pembelajaran dapat dijelaskan oleh variabel teknologi informasi. Temuan kualitatif mengungkapkan bahwa faktor utama yang mendorong keberhasilan transformasi digital adalah dukungan manajemen, kompetensi digital dosen, dan infrastruktur teknologi yang memadai. Sebaliknya, hambatan utama meliputi resistensi terhadap perubahan, keterbatasan anggaran, dan kurangnya pelatihan berkelanjutan. Implikasi teoretis penelitian ini memperkaya literatur tentang technology acceptance model dalam konteks pendidikan tinggi. Secara praktis, hasil penelitian dapat menjadi rujukan bagi pengambil kebijakan dalam merancang strategi transformasi digital yang efektif.\",\n    \"mode\": \"complete\",\n    \"intensity\": \"extreme\",\n    \"enable_ai_validation\": true,\n    \"remove_turnitin_traces\": true\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/process/text",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"process",
+										"text"
+									]
+								},
+								"description": "Test processing with large text content"
+							},
+							"response": []
+						},
+						{
+							"name": "Concurrent Processing Test",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"text\": \"Concurrent test {{$randomInt}} - Metodologi penelitian kualitatif dengan pendekatan fenomenologi digunakan untuk memahami pengalaman subjektif partisipan dalam konteks penelitian ini.\",\n    \"mode\": \"steganography_only\",\n    \"intensity\": \"medium\",\n    \"enable_ai_validation\": false,\n    \"remove_turnitin_traces\": false\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/process/text",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"process",
+										"text"
+									]
+								},
+								"description": "Test concurrent job processing (run multiple times simultaneously)"
+							},
+							"response": []
+						}
+					],
+					"description": "Performance and load testing scenarios"
+				}
+			],
+			"description": "Comprehensive test scenarios for validating API functionality"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Set default base URL if not configured",
+					"if (!pm.environment.get('base_url')) {",
+					"    pm.environment.set('base_url', 'http://localhost:8000');",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global test to check response time",
+					"pm.test('Response time is reasonable', function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(30000);",
+					"});",
+					"",
+					"// Global test for successful responses",
+					"if (pm.response.code >= 200 && pm.response.code < 300) {",
+					"    pm.test('Response status is successful', function () {",
+					"        pm.response.to.be.success;",
+					"    });",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string",
+			"description": "Base URL for the API server"
+		},
+		{
+			"key": "job_id",
+			"value": "",
+			"type": "string",
+			"description": "Current job ID for testing"
+		}
+	]
+}

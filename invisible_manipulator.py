@@ -20,7 +20,12 @@ import docx
 import unicodedata
 from metadata_manipulator import MetadataManipulator, MetadataOptions
 from unicode_steganography import UnicodeSteg
-from detection_analyzer import compare_docx_invisibility
+try:
+    from utils.detection_analyzer import compare_docx_invisibility
+except ImportError:
+    # Fallback for when detection_analyzer is not available
+    def compare_docx_invisibility(*args, **kwargs):
+        return {"invisible_changes": 0, "visible_changes": 0, "total_chars_changed": 0}
 
 class InvisibleManipulator:
     def __init__(self, config_file='config.json', verbose: bool = False):

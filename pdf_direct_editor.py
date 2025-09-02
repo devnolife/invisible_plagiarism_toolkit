@@ -23,7 +23,7 @@ except ImportError as e:
 
 from unicode_steganography import UnicodeSteg
 from pdf_turnitin_analyzer import PDFTurnitinAnalyzer, FlaggedSection
-from intelligent_paraphraser import IntelligentParaphraser
+from hybrid_paraphraser import HybridParaphraser
 from contextual_paraphraser import ContextualParaphraser
 from ai_quality_checker import AIQualityChecker
 
@@ -44,6 +44,10 @@ class PDFEditResult:
     ai_quality_score: float = 0.0
     ai_validation_enabled: bool = False
     quality_issues: int = 0
+    # Turnitin removal fields
+    turnitin_traces_removed: bool = False
+    turnitin_items_removed: int = 0
+    turnitin_removal_stats: Dict = None
 
 @dataclass
 class TextEditTarget:
@@ -65,7 +69,7 @@ class PDFDirectEditor:
         # Initialize steganography modules
         self.unicode_steg = UnicodeSteg()
         self.turnitin_analyzer = PDFTurnitinAnalyzer(verbose=False)
-        self.paraphraser = IntelligentParaphraser(verbose=False)
+        self.paraphraser = HybridParaphraser(enable_t5=True, verbose=False)
         self.contextual_paraphraser = ContextualParaphraser(verbose=False)
         self.ai_checker = AIQualityChecker(verbose=False)
         
@@ -132,20 +136,52 @@ class PDFDirectEditor:
             }
         }
     
-    def edit_pdf_from_turnitin_analysis(self, pdf_path: str, turnitin_pdf_path: str, 
+    def edit_pdf_from_turnitin_analysis(self, pdf_path: str, turnitin_pdf_path: str = None, 
                                       output_path: str = None, 
                                       use_paraphrasing: bool = True,
                                       paraphrase_intensity: str = "high",
-                                      enable_ai_validation: bool = True) -> PDFEditResult:
+                                      enable_ai_validation: bool = True,
+                                      remove_turnitin_traces: bool = True) -> PDFEditResult:
         """
-        Edit PDF based on Turnitin analysis results with paraphrasing
+        Edit PDF based on Turnitin analysis results with paraphrasing and Turnitin trace removal
         """
-        self.logger.info(f"🎯 Starting targeted PDF editing based on Turnitin analysis")
+        self.logger.info(f"🎯 Starting comprehensive PDF cleaning and editing")
         
-        # Step 1: Analyze Turnitin results
-        self.logger.info("🔍 Analyzing Turnitin results...")
-        analysis_result = self.turnitin_analyzer.analyze_turnitin_pdf(turnitin_pdf_path)
-        plagiarism_before = analysis_result.overall_similarity
+        # Step 0: Remove Turnitin traces first (if enabled)
+        turnitin_removal_stats = {}
+        if remove_turnitin_traces:
+            self.logger.info("🧹 Removing all Turnitin traces from PDF...")
+            
+            # If input is Turnitin report PDF, clean it first
+            if turnitin_pdf_path and os.path.exists(turnitin_pdf_path):
+                temp_turnitin_path = turnitin_pdf_path.replace('.pdf', '_temp_cleaned.pdf')
+                turnitin_removal_stats['turnitin_report_cleaned'] = self.remove_all_turnitin_traces(turnitin_pdf_path, temp_turnitin_path)
+                turnitin_pdf_path = temp_turnitin_path
+            
+            # Clean the main document PDF
+            temp_main_path = pdf_path.replace('.pdf', '_temp_cleaned.pdf') 
+            turnitin_removal_stats['main_document_cleaned'] = self.remove_all_turnitin_traces(pdf_path, temp_main_path)
+            pdf_path = temp_main_path
+        
+        # Step 1: Analyze Turnitin results (if available)
+        analysis_result = None
+        plagiarism_before = 0.0
+        
+        if turnitin_pdf_path and os.path.exists(turnitin_pdf_path):
+            self.logger.info("🔍 Analyzing Turnitin results...")
+            analysis_result = self.turnitin_analyzer.analyze_turnitin_pdf(turnitin_pdf_path)
+            plagiarism_before = analysis_result.overall_similarity
+        else:
+            self.logger.info("📄 Processing PDF without Turnitin analysis - applying general steganography")
+            # Create dummy analysis for general processing
+            from pdf_turnitin_analyzer import TurnitinAnalysisResult, FlaggedSection
+            analysis_result = TurnitinAnalysisResult(
+                pdf_file=pdf_path,
+                overall_similarity=0.0,
+                flagged_sections=[],
+                source_breakdown=[],
+                processing_successful=True
+            )
         
         # Step 2: Apply paraphrasing if requested
         paraphrased_sections = 0
@@ -167,6 +203,28 @@ class PDFDirectEditor:
         result.plagiarism_before = plagiarism_before
         result.ai_validation_enabled = enable_ai_validation
         
+        # Add Turnitin removal stats to result
+        if remove_turnitin_traces and turnitin_removal_stats:
+            result.turnitin_traces_removed = True
+            result.turnitin_removal_stats = turnitin_removal_stats
+            
+            # Calculate total Turnitin items removed
+            total_turnitin_removed = 0
+            for stats in turnitin_removal_stats.values():
+                if isinstance(stats, dict):
+                    total_turnitin_removed += (
+                        stats.get('markers_removed', 0) + 
+                        stats.get('highlights_removed', 0) + 
+                        stats.get('watermarks_removed', 0) + 
+                        stats.get('metadata_cleaned', 0)
+                    )
+            
+            result.turnitin_items_removed = total_turnitin_removed
+            self.logger.info(f"🧹 Total Turnitin traces removed: {total_turnitin_removed}")
+        else:
+            result.turnitin_traces_removed = False
+            result.turnitin_items_removed = 0
+        
         # AI Quality validation if enabled
         if enable_ai_validation and paraphrased_sections > 0:
             self.logger.info("🤖 Running AI quality validation...")
@@ -176,8 +234,22 @@ class PDFDirectEditor:
             result.quality_issues = 0
         
         # Estimate final plagiarism after all edits
-        result.plagiarism_after = max(0, plagiarism_before - (paraphrased_sections * 3.5) - (result.total_edits * 0.5))
+        plagiarism_reduction_bonus = 0
+        if result.turnitin_traces_removed:
+            plagiarism_reduction_bonus = min(10, result.turnitin_items_removed * 0.5)  # Bonus for removing traces
+        
+        result.plagiarism_after = max(0, plagiarism_before - (paraphrased_sections * 3.5) - (result.total_edits * 0.5) - plagiarism_reduction_bonus)
         result.plagiarism_reduction = result.plagiarism_before - result.plagiarism_after
+        
+        # Clean up temporary files if created
+        if remove_turnitin_traces:
+            try:
+                if 'temp_main_path' in locals() and temp_main_path != pdf_path and os.path.exists(temp_main_path):
+                    os.remove(temp_main_path)
+                if 'temp_turnitin_path' in locals() and os.path.exists(temp_turnitin_path):
+                    os.remove(temp_turnitin_path)
+            except:
+                pass
         
         return result
     
@@ -440,6 +512,332 @@ class PDFDirectEditor:
             self.edit_stats['invisible_chars_added'] += 1
         
         return modified_text
+    
+    def detect_turnitin_markers(self, doc) -> List[Dict]:
+        """
+        Detect and locate Turnitin markers in PDF
+        Mendeteksi berbagai tanda Turnitin seperti:
+        - Similarity Index (e.g., "15% similarity")
+        - Turnitin watermarks
+        - Colored highlights/backgrounds
+        - Turnitin metadata
+        """
+        turnitin_markers = []
+        
+        # Patterns untuk mendeteksi tanda Turnitin
+        turnitin_patterns = [
+            r'\d+%\s*(similarity|match)',
+            r'turnitin',
+            r'similarity\s*index',
+            r'originality\s*report',
+            r'grammarly',
+            r'paper\s*id\s*:\s*\d+',
+            r'submission\s*id\s*:\s*\d+',
+            r'processed\s*on\s*\d',
+            r'this\s*is\s*a\s*turnitin',
+            r'generated\s*on\s*\d+/\d+/\d+',
+            r'www\.turnitin\.com',
+            r'©.*turnitin',
+            r'similarity\s*by\s*source',
+            r'publications\s*match',
+            r'student\s*papers\s*match',
+            r'internet\s*sources\s*match'
+        ]
+        
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            
+            # Get text blocks with detailed information
+            text_dict = page.get_text("dict")
+            
+            for block in text_dict.get("blocks", []):
+                if "lines" not in block:
+                    continue
+                    
+                for line in block["lines"]:
+                    for span in line["spans"]:
+                        text = span["text"].lower().strip()
+                        
+                        # Check for Turnitin patterns
+                        for pattern in turnitin_patterns:
+                            if re.search(pattern, text, re.IGNORECASE):
+                                turnitin_markers.append({
+                                    'page': page_num,
+                                    'text': span["text"],
+                                    'bbox': span["bbox"],
+                                    'pattern': pattern,
+                                    'type': 'text_marker',
+                                    'font': span.get("font", ""),
+                                    'size': span.get("size", 0)
+                                })
+                                self.logger.info(f"🎯 Found Turnitin marker: {text[:50]}...")
+            
+            # Detect colored backgrounds (often used for highlighting)
+            self._detect_colored_backgrounds(page, page_num, turnitin_markers)
+            
+            # Detect watermarks
+            self._detect_watermarks(page, page_num, turnitin_markers)
+        
+        return turnitin_markers
+    
+    def _detect_colored_backgrounds(self, page, page_num: int, markers_list: List[Dict]):
+        """Detect colored backgrounds that might indicate Turnitin highlighting"""
+        try:
+            # Get drawing instructions
+            drawings = page.get_drawings()
+            
+            for drawing in drawings:
+                # Look for rectangles with colors (potential highlights)
+                if drawing.get("type") == "re" and "fill" in drawing:
+                    fill_color = drawing.get("fill")
+                    
+                    # Check if it's a highlight color (not white/black)
+                    if fill_color and fill_color not in [0, 1, (1,1,1), (0,0,0)]:
+                        markers_list.append({
+                            'page': page_num,
+                            'bbox': drawing.get("rect"),
+                            'type': 'highlight',
+                            'color': fill_color,
+                            'pattern': 'colored_background'
+                        })
+        except Exception as e:
+            self.logger.debug(f"Error detecting colored backgrounds: {e}")
+    
+    def _detect_watermarks(self, page, page_num: int, markers_list: List[Dict]):
+        """Detect potential watermarks"""
+        try:
+            # Look for semi-transparent text or images
+            text_dict = page.get_text("dict")
+            
+            for block in text_dict.get("blocks", []):
+                if "lines" not in block:
+                    continue
+                    
+                for line in block["lines"]:
+                    for span in line["spans"]:
+                        text = span["text"].lower()
+                        
+                        # Check for watermark-like text
+                        if (any(word in text for word in ['turnitin', 'similarity', 'originality']) 
+                            and span.get("size", 12) > 20):  # Large text often indicates watermarks
+                            
+                            markers_list.append({
+                                'page': page_num,
+                                'text': span["text"],
+                                'bbox': span["bbox"],
+                                'type': 'watermark',
+                                'pattern': 'large_text_watermark'
+                            })
+        except Exception as e:
+            self.logger.debug(f"Error detecting watermarks: {e}")
+    
+    def remove_turnitin_markers(self, doc, markers: List[Dict]) -> int:
+        """
+        Remove detected Turnitin markers from PDF
+        """
+        removed_count = 0
+        
+        # Group markers by page for efficient processing
+        markers_by_page = {}
+        for marker in markers:
+            page_num = marker['page']
+            if page_num not in markers_by_page:
+                markers_by_page[page_num] = []
+            markers_by_page[page_num].append(marker)
+        
+        for page_num, page_markers in markers_by_page.items():
+            page = doc[page_num]
+            
+            # Sort markers by position (bottom to top, right to left)
+            # This ensures we don't affect positions when removing
+            page_markers.sort(key=lambda x: (x['bbox'][3], x['bbox'][2]), reverse=True)
+            
+            for marker in page_markers:
+                try:
+                    success = self._remove_single_marker(page, marker)
+                    if success:
+                        removed_count += 1
+                        self.logger.info(f"✂️ Removed Turnitin marker: {marker.get('text', marker['type'])[:30]}...")
+                except Exception as e:
+                    self.logger.warning(f"Failed to remove marker: {e}")
+        
+        return removed_count
+    
+    def _remove_single_marker(self, page, marker: Dict) -> bool:
+        """Remove a single Turnitin marker"""
+        marker_type = marker.get('type')
+        bbox = fitz.Rect(marker['bbox'])
+        
+        if marker_type == 'text_marker':
+            # Remove text by covering with white rectangle
+            page.draw_rect(bbox, color=1, fill=1, width=0)
+            return True
+            
+        elif marker_type == 'highlight':
+            # Remove highlight by drawing white rectangle over it
+            page.draw_rect(bbox, color=1, fill=1, width=0)
+            return True
+            
+        elif marker_type == 'watermark':
+            # Remove watermark text
+            page.draw_rect(bbox, color=1, fill=1, width=0)
+            return True
+        
+        return False
+    
+    def clean_pdf_metadata(self, doc) -> Dict[str, str]:
+        """
+        Clean Turnitin-related metadata from PDF
+        """
+        cleaned_metadata = {}
+        original_metadata = doc.metadata
+        
+        # Turnitin metadata patterns to remove
+        turnitin_metadata_patterns = [
+            r'turnitin',
+            r'similarity',
+            r'originality',
+            r'grammarly',
+            r'plagiarism',
+            r'www\.turnitin\.com'
+        ]
+        
+        for key, value in original_metadata.items():
+            if value:
+                value_lower = str(value).lower()
+                # Check if metadata contains Turnitin references
+                contains_turnitin = any(re.search(pattern, value_lower, re.IGNORECASE) 
+                                      for pattern in turnitin_metadata_patterns)
+                
+                if contains_turnitin:
+                    cleaned_metadata[key] = ""
+                    self.logger.info(f"🧹 Cleaned metadata field: {key}")
+                else:
+                    cleaned_metadata[key] = value
+        
+        # Set cleaned metadata
+        doc.set_metadata(cleaned_metadata)
+        
+        return cleaned_metadata
+    
+    def remove_all_turnitin_traces(self, pdf_path: str, output_path: str = None) -> Dict:
+        """
+        Komprehensif menghapus semua jejak Turnitin dari PDF
+        Main method untuk membersihkan PDF dari tanda-tanda Turnitin
+        """
+        if not output_path:
+            name, ext = os.path.splitext(pdf_path)
+            output_path = f"{name}_cleaned{ext}"
+        
+        removal_stats = {
+            'markers_removed': 0,
+            'highlights_removed': 0,
+            'watermarks_removed': 0,
+            'metadata_cleaned': 0,
+            'processing_successful': False,
+            'errors': []
+        }
+        
+        try:
+            # Open PDF
+            doc = fitz.open(pdf_path)
+            self.logger.info(f"🔍 Scanning PDF for Turnitin traces: {os.path.basename(pdf_path)}")
+            
+            # Step 1: Detect all Turnitin markers
+            self.logger.info("🎯 Detecting Turnitin markers...")
+            turnitin_markers = self.detect_turnitin_markers(doc)
+            
+            if turnitin_markers:
+                self.logger.info(f"📍 Found {len(turnitin_markers)} Turnitin markers")
+                
+                # Categorize markers
+                text_markers = [m for m in turnitin_markers if m['type'] == 'text_marker']
+                highlights = [m for m in turnitin_markers if m['type'] == 'highlight']
+                watermarks = [m for m in turnitin_markers if m['type'] == 'watermark']
+                
+                self.logger.info(f"   📝 Text markers: {len(text_markers)}")
+                self.logger.info(f"   🎨 Highlights: {len(highlights)}")
+                self.logger.info(f"   💧 Watermarks: {len(watermarks)}")
+                
+                # Step 2: Remove markers
+                self.logger.info("✂️ Removing Turnitin markers...")
+                removed_count = self.remove_turnitin_markers(doc, turnitin_markers)
+                
+                removal_stats['markers_removed'] = len(text_markers)
+                removal_stats['highlights_removed'] = len(highlights)
+                removal_stats['watermarks_removed'] = len(watermarks)
+                
+                self.logger.info(f"🧹 Successfully removed {removed_count} markers")
+            else:
+                self.logger.info("✅ No Turnitin markers detected")
+            
+            # Step 3: Clean metadata
+            self.logger.info("🧹 Cleaning PDF metadata...")
+            cleaned_metadata = self.clean_pdf_metadata(doc)
+            
+            # Count how many fields were cleaned
+            original_metadata = doc.metadata
+            cleaned_fields = sum(1 for k, v in original_metadata.items() 
+                               if v and not cleaned_metadata.get(k))
+            removal_stats['metadata_cleaned'] = cleaned_fields
+            
+            if cleaned_fields > 0:
+                self.logger.info(f"🧹 Cleaned {cleaned_fields} metadata fields")
+            else:
+                self.logger.info("✅ No Turnitin metadata found")
+            
+            # Step 4: Remove annotations and comments that might contain Turnitin data
+            self.logger.info("📝 Removing annotations...")
+            annotations_removed = self._remove_turnitin_annotations(doc)
+            
+            # Step 5: Save cleaned PDF
+            doc.save(output_path)
+            doc.close()
+            
+            removal_stats['processing_successful'] = True
+            self.logger.info(f"✅ Clean PDF saved: {os.path.basename(output_path)}")
+            
+            # Summary
+            total_removed = (removal_stats['markers_removed'] + 
+                           removal_stats['highlights_removed'] + 
+                           removal_stats['watermarks_removed'] + 
+                           removal_stats['metadata_cleaned'] + 
+                           annotations_removed)
+            
+            self.logger.info(f"🎉 Turnitin cleanup complete! Total items removed: {total_removed}")
+            
+        except Exception as e:
+            error_msg = f"Error cleaning PDF: {str(e)}"
+            self.logger.error(error_msg)
+            removal_stats['errors'].append(error_msg)
+        
+        return removal_stats
+    
+    def _remove_turnitin_annotations(self, doc) -> int:
+        """Remove annotations and comments that might contain Turnitin references"""
+        removed_count = 0
+        
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            
+            annotations = page.annots()
+            for annot in annotations:
+                try:
+                    # Get annotation content
+                    content = annot.info.get("content", "").lower()
+                    title = annot.info.get("title", "").lower()
+                    
+                    # Check if annotation contains Turnitin references
+                    turnitin_keywords = ['turnitin', 'similarity', 'originality', 'plagiarism']
+                    if any(keyword in content or keyword in title for keyword in turnitin_keywords):
+                        annot.delete()
+                        removed_count += 1
+                        self.logger.debug(f"Removed annotation: {content[:50]}...")
+                        
+                except Exception as e:
+                    self.logger.debug(f"Error processing annotation: {e}")
+        
+        return removed_count
     
     def replace_text_in_span(self, page, span: dict, new_text: str) -> bool:
         """
