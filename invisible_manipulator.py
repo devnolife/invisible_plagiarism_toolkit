@@ -15,26 +15,54 @@ import random
 import shutil
 from datetime import datetime
 from pathlib import Path
+import logging
 import docx
-from docx.shared import RGBColor, Pt
-from docx.enum.text import WD_ALIGN_PARAGRAPH
 import unicodedata
 from metadata_manipulator import MetadataManipulator, MetadataOptions
+from unicode_steganography import UnicodeSteg
+try:
+    from utils.detection_analyzer import compare_docx_invisibility
+except ImportError:
+    # Fallback for when detection_analyzer is not available
+    def compare_docx_invisibility(*args, **kwargs):
+        return {"invisible_changes": 0, "visible_changes": 0, "total_chars_changed": 0}
 
 class InvisibleManipulator:
-    def __init__(self, config_file='config.json'):
-        print("🔮 Initializing Invisible Manipulator...")
-        print("✨ Steganography-based document manipulation")
-        
+    def __init__(self, config_file='config.json', verbose: bool = False):
+        self.verbose = verbose
+        self.logger = logging.getLogger(self.__class__.__name__)
+        if not self.logger.handlers:
+            handler = logging.StreamHandler()
+            fmt = logging.Formatter('[%(levelname)s] %(name)s: %(message)s')
+            handler.setFormatter(fmt)
+            self.logger.addHandler(handler)
+        self.logger.setLevel(logging.DEBUG if verbose else logging.INFO)
+
+        self.logger.info("Initializing Invisible Manipulator (steganography engine)")
+
         # Load configuration
         self.config = self.load_config(config_file)
-        
+        self.validate_config(self.config)
+
         # Load data files
         self.unicode_mappings = self.load_data_file('data/unicode_mappings.json')
         self.invisible_chars = self.load_data_file('data/invisible_chars.json')
         self.header_patterns = self.load_data_file('data/header_patterns.json')
-        
-        # Statistics tracking
+
+        # Fallback: initialize UnicodeSteg if mapping keys mismatch expected usage
+        self.steg = UnicodeSteg()
+        if 'latin_cyrillic' in self.steg.mappings and 'latin_to_cyrillic' not in self.unicode_mappings:
+            # Normalize structure so downstream code can use unified key names
+            self.unicode_mappings['latin_to_cyrillic'] = self.steg.mappings['latin_cyrillic']
+        if 'indonesian_academic' in self.steg.mappings and 'special_substitutions' not in self.unicode_mappings:
+            self.unicode_mappings['special_substitutions'] = self.steg.mappings['indonesian_academic']
+
+        # Statistics tracking (per document basis later)
+        self.reset_stats()
+
+        self.logger.debug("Configuration loaded and mappings normalized")
+
+    def reset_stats(self):
         self.stats = {
             'total_documents': 0,
             'headers_modified': 0,
@@ -43,12 +71,6 @@ class InvisibleManipulator:
             'metadata_modified': 0,
             'processing_time': 0
         }
-        
-        print("✅ Configuration loaded")
-        print("✅ Unicode mappings ready")
-        print("✅ Invisible characters database loaded")
-        print("✅ Header patterns configured")
-        print("🎯 Ready for invisible manipulation!")
     
     def load_config(self, config_file):
         """Load configuration from JSON file"""
@@ -60,6 +82,23 @@ class InvisibleManipulator:
         except FileNotFoundError:
             print(f"⚠️ Config file {config_file} not found, using defaults")
             return self.get_default_config()
+
+    def validate_config(self, config: dict):
+        """Basic schema validation and normalization."""
+        required_root = ['invisible_techniques', 'safety_settings']
+        for key in required_root:
+            if key not in config:
+                self.logger.warning("Config missing root key '%s' - inserting defaults", key)
+                config[key] = self.get_default_config()[key]
+        try:
+            z = config['invisible_techniques'].get('zero_width_chars', {})
+            if 'insertion_rate' in z:
+                z['insertion_rate'] = max(0.0, min(0.2, float(z['insertion_rate'])))
+            u = config['invisible_techniques'].get('unicode_substitution', {})
+            if 'substitution_rate' in u:
+                u['substitution_rate'] = max(0.0, min(0.2, float(u['substitution_rate'])))
+        except Exception as e:
+            self.logger.warning("Rate normalization failed: %s", e)
     
     def load_data_file(self, file_path):
         """Load data files (mappings, patterns, etc.)"""
@@ -97,8 +136,8 @@ class InvisibleManipulator:
     
     def analyze_document_structure(self, doc_path):
         """Analyze document to identify headers, key sections, etc."""
-        print("🔍 Analyzing document structure...")
-        
+        self.logger.debug("Analyzing document structure ...")
+
         doc = docx.Document(doc_path)
         analysis = {
             'total_paragraphs': len(doc.paragraphs),
@@ -107,10 +146,10 @@ class InvisibleManipulator:
             'citations': [],
             'metadata': {}
         }
-        
+
         for i, paragraph in enumerate(doc.paragraphs):
             text = paragraph.text.strip()
-            
+
             if not text:
                 continue
             
@@ -137,13 +176,10 @@ class InvisibleManipulator:
                     'index': i,
                     'text': text[:100] + '...' if len(text) > 100 else text
                 })
-        
-        print(f"📊 Analysis complete:")
-        print(f"   📄 Total paragraphs: {analysis['total_paragraphs']}")
-        print(f"   📑 Headers found: {len(analysis['headers'])}")
-        print(f"   🎯 Key sections: {len(analysis['key_sections'])}")
-        print(f"   📚 Citations: {len(analysis['citations'])}")
-        
+        self.logger.debug(
+            "Analysis: paragraphs=%s headers=%s key_sections=%s citations=%s",
+            analysis['total_paragraphs'], len(analysis['headers']), len(analysis['key_sections']), len(analysis['citations'])
+        )
         return analysis
     
     def is_header(self, text, paragraph):
@@ -250,29 +286,33 @@ class InvisibleManipulator:
         
         return any(re.search(pattern, text) for pattern in citation_patterns)
     
-    def apply_invisible_manipulation(self, doc_path, output_path=None):
-        """Apply invisible manipulation techniques to document"""
-        print("🔮 Starting invisible manipulation...")
-        
+    def apply_invisible_manipulation(self, doc_path, output_path=None, dry_run: bool = False):
+        """Apply invisible manipulation techniques.
+
+        dry_run: simulate; no file writes/backups.
+        """
+        self.logger.info("Starting invisible manipulation: %s", doc_path)
+
         start_time = datetime.now()
-        
+
         # Create backup
-        if self.config['safety_settings']['backup_original']:
+        backup_path = None
+        if not dry_run and self.config['safety_settings']['backup_original']:
             backup_path = self.create_backup(doc_path)
-            print(f"💾 Backup created: {backup_path}")
-        
+            self.logger.debug("Backup created: %s", backup_path)
+
         # Analyze document
         analysis = self.analyze_document_structure(doc_path)
-        
+
         # Load document
         doc = docx.Document(doc_path)
-        
+
         # Apply techniques based on priority
         self.apply_header_manipulation(doc, analysis)
         self.apply_unicode_substitution(doc, analysis)
         self.apply_invisible_characters(doc, analysis)
         self.apply_metadata_manipulation(doc)
-        
+
         # Save processed document
         if output_path is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -282,21 +322,25 @@ class InvisibleManipulator:
             # Ensure output directory exists
             Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         
-        doc.save(output_path)
+        if not dry_run:
+            doc.save(output_path)
         
         # Calculate statistics
         end_time = datetime.now()
         self.stats['processing_time'] = (end_time - start_time).total_seconds()
         self.stats['total_documents'] += 1
-        
-        print(f"✅ Invisible manipulation completed!")
-        print(f"💾 Output saved: {output_path}")
+
+        if dry_run:
+            self.logger.info("Dry-run completed (no file written)")
+        else:
+            self.logger.info("Invisible manipulation completed -> %s", output_path)
         self.print_manipulation_stats()
-        
+
         return {
             'input_file': doc_path,
-            'output_file': output_path,
-            'backup_file': backup_path if self.config['safety_settings']['backup_original'] else None,
+            'output_file': None if dry_run else output_path,
+            'dry_run': dry_run,
+            'backup_file': backup_path if (not dry_run and self.config['safety_settings']['backup_original']) else None,
             'analysis': analysis,
             'stats': self.stats.copy(),
             'processing_time': self.stats['processing_time']
@@ -304,7 +348,7 @@ class InvisibleManipulator:
     
     def apply_header_manipulation(self, doc, analysis):
         """Apply manipulation specifically to headers"""
-        print("📑 Manipulating headers...")
+        self.logger.debug("Manipulating headers ...")
         
         if not self.config['invisible_techniques']['unicode_substitution']['enabled']:
             return
@@ -323,7 +367,7 @@ class InvisibleManipulator:
                 paragraph.text = manipulated_text
                 self.stats['headers_modified'] += 1
                 
-                print(f"   🔀 Header modified: '{original_text}' → '{manipulated_text}'")
+                self.logger.debug("Header modified: %s -> %s", original_text, manipulated_text)
     
     def apply_unicode_substitution_to_text(self, text):
         """Apply Unicode character substitution"""
@@ -356,55 +400,55 @@ class InvisibleManipulator:
     
     def apply_unicode_substitution(self, doc, analysis):
         """Apply Unicode substitution to key sections"""
-        print("🔤 Applying Unicode substitutions...")
-        
+        self.logger.debug("Applying Unicode substitutions to key sections ...")
+
         if not self.config['invisible_techniques']['unicode_substitution']['enabled']:
             return
-        
+
         key_sections = analysis['key_sections']
-        
+
         for section_info in key_sections:
             paragraph = doc.paragraphs[section_info['index']]
             original_text = paragraph.text
-            
+
             # Apply substitution with lower rate for content
             manipulated_text = self.apply_unicode_substitution_to_text(original_text)
-            
+
             if manipulated_text != original_text:
                 paragraph.text = manipulated_text
     
     def apply_invisible_characters(self, doc, analysis):
         """Insert invisible characters strategically"""
-        print("👻 Inserting invisible characters...")
-        
+        self.logger.debug("Inserting invisible characters ...")
+
         if not self.config['invisible_techniques']['zero_width_chars']['enabled']:
             return
-        
+
         if not self.invisible_chars:
             return
-        
+
         insertion_rate = self.config['invisible_techniques']['zero_width_chars']['insertion_rate']
         zero_width_chars = list(self.invisible_chars.get('zero_width', {}).values())
-        
+
         if not zero_width_chars:
             return
-        
+
         # Focus on headers and key sections
         target_paragraphs = []
-        
+
         # Add headers
         for header_info in analysis['headers']:
             target_paragraphs.append(header_info['index'])
-        
-        # Add key sections  
+
+        # Add key sections
         for section_info in analysis['key_sections']:
             target_paragraphs.append(section_info['index'])
-        
+
         for para_index in target_paragraphs:
             if para_index < len(doc.paragraphs):
                 paragraph = doc.paragraphs[para_index]
                 original_text = paragraph.text
-                
+
                 # Insert invisible characters
                 new_text = self.insert_invisible_chars(original_text, zero_width_chars, insertion_rate)
                 
@@ -416,19 +460,25 @@ class InvisibleManipulator:
         """Insert invisible characters into text"""
         result = ""
         
+        max_consecutive = self.invisible_chars.get('detection_avoidance', {}).get('max_consecutive', 2)
+        consecutive = 0
         for i, char in enumerate(text):
             result += char
-            
-            # Insert after punctuation or spaces
-            if char in '.,:;! ' and random.random() < insertion_rate:
-                invisible_char = random.choice(invisible_chars)
-                result += invisible_char
+
+            # Rate limiting per paragraph
+            if random.random() < insertion_rate and char in '.,:;! ':
+                if consecutive < max_consecutive:
+                    invisible_char = random.choice(invisible_chars)
+                    result += invisible_char
+                    consecutive += 1
+                else:
+                    consecutive = 0
         
         return result
     
     def apply_metadata_manipulation(self, doc):
         """Manipulate document metadata"""
-        print("📋 Manipulating metadata...")
+        self.logger.debug("Manipulating metadata ...")
         if not self.config['invisible_techniques']['metadata_manipulation']['enabled']:
             return
 
@@ -441,7 +491,7 @@ class InvisibleManipulator:
             changes = manip.apply(doc)
             self.stats['metadata_modified'] += int(changes > 0)
         except Exception as e:
-            print(f"⚠️ Could not modify metadata: {e}")
+            self.logger.warning("Could not modify metadata: %s", e)
     
     def create_backup(self, file_path):
         """Create backup of original file"""
@@ -459,58 +509,31 @@ class InvisibleManipulator:
     
     def print_manipulation_stats(self):
         """Print manipulation statistics"""
-        print("\n📊 MANIPULATION STATISTICS:")
-        print("=" * 50)
-        print(f"📄 Documents processed: {self.stats['total_documents']}")
-        print(f"📑 Headers modified: {self.stats['headers_modified']}")
-        print(f"🔤 Characters substituted: {self.stats['chars_substituted']}")
-        print(f"👻 Invisible chars inserted: {self.stats['invisible_chars_inserted']}")
-        print(f"📋 Metadata modifications: {self.stats['metadata_modified']}")
-        print(f"⏱️ Processing time: {self.stats['processing_time']:.2f}s")
-        print("=" * 50)
+        self.logger.info(
+            "Stats: docs=%s headers=%s chars_sub=%s inv_chars=%s metadata=%s time=%.2fs",
+            self.stats['total_documents'], self.stats['headers_modified'], self.stats['chars_substituted'],
+            self.stats['invisible_chars_inserted'], self.stats['metadata_modified'], self.stats['processing_time']
+        )
     
     def verify_invisibility(self, original_path, modified_path):
-        """Verify that changes are visually invisible"""
-        print("🔍 Verifying invisibility of changes...")
-        
+        """Verify that changes are visually invisible (delegates to compare_docx_invisibility)."""
+        self.logger.debug("Verifying invisibility of changes (unified analyzer)...")
         try:
-            original_doc = docx.Document(original_path)
-            modified_doc = docx.Document(modified_path)
-            
-            differences = {
-                'visible_changes': 0,
-                'invisible_changes': 0,
-                'total_chars_changed': 0
-            }
-            
-            # Compare paragraph by paragraph
-            for i, (orig_para, mod_para) in enumerate(zip(original_doc.paragraphs, modified_doc.paragraphs)):
-                orig_text = orig_para.text
-                mod_text = mod_para.text
-                
-                if orig_text != mod_text:
-                    # Check if the difference is only invisible characters
-                    orig_visible = ''.join(c for c in orig_text if unicodedata.category(c) != 'Cf')
-                    mod_visible = ''.join(c for c in mod_text if unicodedata.category(c) != 'Cf')
-                    
-                    if orig_visible == mod_visible:
-                        differences['invisible_changes'] += 1
-                    else:
-                        differences['visible_changes'] += 1
-                    
-                    differences['total_chars_changed'] += abs(len(mod_text) - len(orig_text))
-            
-            print(f"   👻 Invisible changes: {differences['invisible_changes']}")
-            print(f"   👁️ Visible changes: {differences['visible_changes']}")
-            print(f"   📊 Total character changes: {differences['total_chars_changed']}")
-            
-            invisibility_score = (differences['invisible_changes'] / max(1, differences['invisible_changes'] + differences['visible_changes'])) * 100
-            print(f"   🎯 Invisibility score: {invisibility_score:.1f}%")
-            
+            differences = compare_docx_invisibility(original_path, modified_path)
+            if differences is None:
+                return None
+            # Enrich with score for convenience
+            total_pairs = differences['invisible_changes'] + differences['visible_changes']
+            differences['invisibility_score'] = (
+                differences['invisible_changes'] / total_pairs if total_pairs else 1.0
+            )
+            self.logger.debug(
+                "Verification result: invisible=%s visible=%s total_char_delta=%s score=%.1f%%",
+                differences['invisible_changes'], differences['visible_changes'], differences['total_chars_changed'], differences['invisibility_score'] * 100
+            )
             return differences
-            
         except Exception as e:
-            print(f"❌ Could not verify invisibility: {e}")
+            self.logger.error("Could not verify invisibility: %s", e)
             return None
 
 
